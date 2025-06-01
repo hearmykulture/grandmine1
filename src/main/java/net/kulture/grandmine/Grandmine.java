@@ -1,6 +1,11 @@
 package net.kulture.grandmine;
 
 import com.mojang.logging.LogUtils;
+import net.kulture.grandmine.combat.CombatStyles;
+import net.kulture.grandmine.combat.skills.SkillRegistry;
+import net.kulture.grandmine.event.PlayerJoinHandler;
+import net.kulture.grandmine.item.ModItems;
+import net.kulture.grandmine.particles.ModParticles;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.food.FoodProperties;
@@ -13,6 +18,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -32,6 +38,8 @@ import org.slf4j.Logger;
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(Grandmine.MODID)
 public class Grandmine {
+
+
 
     // Define mod id in a common place for everything to reference
     public static final String MODID = "grandmine";
@@ -62,6 +70,8 @@ public class Grandmine {
 
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
+
+        ModItems.ITEMS.register(modEventBus); //
 
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
@@ -107,9 +117,17 @@ public class Grandmine {
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents {
+        @SubscribeEvent
+        public static void registerKeyBindings(RegisterKeyMappingsEvent event) {
+            net.kulture.grandmine.client.input.KeyBindings.register(event);
+        }
 
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
+            SkillRegistry.registerSkills();
+            CombatStyles.getAll();
+            ModParticles.registerParticles();
+            MinecraftForge.EVENT_BUS.register(new PlayerJoinHandler());
             // Some client setup code
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());

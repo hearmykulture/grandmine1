@@ -131,6 +131,16 @@ mixin {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+
+    maven {
+        url = "https://api.modrinth.com/maven"
+    }
     // Put repositories for dependencies here
     // ForgeGradle automatically adds the Forge maven and Maven Central for you
 
@@ -142,6 +152,12 @@ repositories {
 }
 
 dependencies {
+    implementation fg.deobf("maven.modrinth:aaa-particles:1.20.1-1.4.10-forge")
+    implementation fg.deobf("maven.modrinth:architectury-api:9.2.14+forge")
+    implementation fg.deobf("curse.maven:epic-fight-mod-405076:6534845")
+    implementation fg.deobf("curse.maven:official-epic-fight-x-parcool-1259252:6534850")
+    implementation fg.deobf("curse.maven:parcool-482378:6504378")
+
     // Specify the version of Minecraft to use.
     // Any artifact can be supplied so long as it has a "userdev" classifier artifact and is a compatible patcher artifact.
     // The "userdev" classifier will be requested and setup by ForgeGradle.
