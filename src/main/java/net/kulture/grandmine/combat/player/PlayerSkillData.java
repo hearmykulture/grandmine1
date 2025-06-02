@@ -1,8 +1,6 @@
 package net.kulture.grandmine.combat.player;
 
-import net.kulture.grandmine.combat.skills.Skill;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
 
@@ -14,10 +12,8 @@ public class PlayerSkillData {
     // Currently equipped skills (e.g., slot 0 = "soru", slot 1 = "rankyaku")
     private final List<String> equippedSkillIds = new ArrayList<>();
 
-    // Cooldowns per skill ID (track time remaining)
+    // Cooldowns per skill ID (tick-based)
     private final Map<String, Integer> skillCooldowns = new HashMap<>();
-
-    public PlayerSkillData() {}
 
     // --------------------------
     // LEARNED SKILLS
@@ -75,7 +71,12 @@ public class PlayerSkillData {
     }
 
     public void tickCooldowns() {
-        skillCooldowns.replaceAll((skillId, timeLeft) -> Math.max(0, timeLeft - 1));
+        skillCooldowns.replaceAll((skillId, ticks) -> Math.max(0, ticks - 1));
+    }
+
+    // Optional: call this per tick from your tick handler
+    public void tick() {
+        tickCooldowns();
     }
 
     // --------------------------
@@ -85,18 +86,21 @@ public class PlayerSkillData {
     public CompoundTag saveToNBT() {
         CompoundTag tag = new CompoundTag();
 
+        // Save learned skills
         CompoundTag skillsTag = new CompoundTag();
         for (Map.Entry<String, Integer> entry : learnedSkills.entrySet()) {
             skillsTag.putInt(entry.getKey(), entry.getValue());
         }
         tag.put("LearnedSkills", skillsTag);
 
+        // Save cooldowns
         CompoundTag cooldownsTag = new CompoundTag();
         for (Map.Entry<String, Integer> entry : skillCooldowns.entrySet()) {
             cooldownsTag.putInt(entry.getKey(), entry.getValue());
         }
         tag.put("SkillCooldowns", cooldownsTag);
 
+        // Save equipped skills
         for (int i = 0; i < equippedSkillIds.size(); i++) {
             tag.putString("EquippedSkill_" + i, equippedSkillIds.get(i) != null ? equippedSkillIds.get(i) : "");
         }
@@ -109,22 +113,36 @@ public class PlayerSkillData {
         skillCooldowns.clear();
         equippedSkillIds.clear();
 
-        CompoundTag skillsTag = tag.getCompound("LearnedSkills");
-        for (String key : skillsTag.getAllKeys()) {
-            learnedSkills.put(key, skillsTag.getInt(key));
+        // Load learned skills
+        if (tag.contains("LearnedSkills")) {
+            CompoundTag skillsTag = tag.getCompound("LearnedSkills");
+            for (String key : skillsTag.getAllKeys()) {
+                learnedSkills.put(key, skillsTag.getInt(key));
+            }
         }
 
-        CompoundTag cooldownsTag = tag.getCompound("SkillCooldowns");
-        for (String key : cooldownsTag.getAllKeys()) {
-            skillCooldowns.put(key, cooldownsTag.getInt(key));
+        // Load cooldowns
+        if (tag.contains("SkillCooldowns")) {
+            CompoundTag cooldownsTag = tag.getCompound("SkillCooldowns");
+            for (String key : cooldownsTag.getAllKeys()) {
+                skillCooldowns.put(key, cooldownsTag.getInt(key));
+            }
         }
 
+        // Load equipped skills
         int index = 0;
         while (tag.contains("EquippedSkill_" + index)) {
             String id = tag.getString("EquippedSkill_" + index);
-            equippedSkillIds.add(id.isEmpty() ? null : id);
+            ensureEquippedListSize(index + 1);
+            equippedSkillIds.set(index, id.isEmpty() ? null : id);
             index++;
         }
     }
-
+    public boolean tryActivateSkill(String skillId, int cooldownTicks) {
+        if (isOnCooldown(skillId)) {
+            return false; // Skill is still on cooldown
+        }
+        setCooldown(skillId, cooldownTicks);
+        return true; // Skill activated
+    }
 }
