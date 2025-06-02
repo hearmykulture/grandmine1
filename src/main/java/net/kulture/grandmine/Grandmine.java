@@ -1,7 +1,10 @@
 package net.kulture.grandmine;
 
 import com.mojang.logging.LogUtils;
+import net.kulture.grandmine.client.ClientCycleSkillKeys;
 import net.kulture.grandmine.client.ClientSkillKeybinds;
+import net.kulture.grandmine.client.ClientUseSkillKeybind;
+import net.kulture.grandmine.client.GrandmineClient;
 import net.kulture.grandmine.combat.CombatStyles;
 import net.kulture.grandmine.combat.events.PlayerCombatEvents;
 import net.kulture.grandmine.combat.skills.SkillRegistry;
@@ -23,7 +26,6 @@ import net.minecraft.world.level.material.MapColor;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -66,27 +68,30 @@ public class Grandmine {
     public Grandmine() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // Setup
+        // Register lifecycle event listeners
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
 
-        // Config
+        // Register config
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
 
-        // Content
+        // Register deferred registers
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
 
-        // Global event listeners
+        // Register global event listeners
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(PlayerCombatEvents.class);
         MinecraftForge.EVENT_BUS.register(new PlayerJoinHandler());
 
-        // Client keybind/input listener (Forge bus)
+        // Register client-side event listeners and setup
         if (FMLEnvironment.dist == Dist.CLIENT) {
             MinecraftForge.EVENT_BUS.register(ClientSkillKeybinds.class);
+            modEventBus.addListener((FMLClientSetupEvent event) -> {
+                GrandmineClient.init();
+            });
         }
     }
 
@@ -99,7 +104,6 @@ public class Grandmine {
         LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
         Config.items.forEach(item -> LOGGER.info("ITEM >> {}", item));
         event.enqueueWork(NetworkHandler::register);
-
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
@@ -115,8 +119,17 @@ public class Grandmine {
 
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents {
+
         @SubscribeEvent
         public static void onRegisterKeyBindings(RegisterKeyMappingsEvent event) {
+            ClientSkillKeybinds.register(event);
+            ClientUseSkillKeybind.register(event);
+            ClientCycleSkillKeys.register(event);
+
+        }
+
+        @SubscribeEvent
+        public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
             ClientSkillKeybinds.register(event);
         }
 
@@ -126,11 +139,14 @@ public class Grandmine {
                 SkillRegistry.registerSkills();
                 CombatStyles.getAll();
                 ModParticles.registerParticles();
-                net.kulture.grandmine.client.Keybinds.init(); // ✅ Register key input handler on Forge bus
+
+
             });
+
+
+
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
         }
-
     }
 }
