@@ -60,9 +60,10 @@ public class SkillManager {
     public void setCurrentCombatStyle(CombatStyle style) {
         this.currentCombatStyle = style;
         if (style == null) return;
+
         System.out.println("Setting combat style: " + style.getId());
 
-        // Learn all default skills of the combat style if not already learned
+        // Step 1: Learn all default skills for this style
         for (Skill skill : style.getDefaultSkillObjects()) {
             String skillId = skill.getId();
             if (!skillData.hasLearned(skillId)) {
@@ -73,11 +74,15 @@ public class SkillManager {
             }
         }
 
+        // Step 2: Ensure skill slots match the max for this style
+        skillData.setSkillSlotCount(style.getMaxSkillSlots());
+
+        // Step 3: Equip default skills if needed
         List<String> equipped = skillData.getAllEquippedSkills();
         int maxSlots = style.getMaxSkillSlots();
 
-        boolean shouldReset = equipped.size() > maxSlots ||
-                equipped.stream().anyMatch(id -> id != null && SkillRegistry.getSkillById(id) == null);
+        boolean shouldReset = equipped.size() != maxSlots ||  // Mismatch
+                equipped.stream().anyMatch(id -> id != null && SkillRegistry.getSkillById(id) == null);  // Corrupt
 
         if (shouldReset || equipped.isEmpty()) {
             List<Skill> defaults = style.getDefaultSkillObjects();
@@ -88,11 +93,13 @@ public class SkillManager {
                 System.out.println("Equipping skill in slot " + i + ": " + defaults.get(i));
             }
 
-            for (int i = slotsToFill; i < equipped.size(); i++) {
+            // Clear remaining slots
+            for (int i = slotsToFill; i < maxSlots; i++) {
                 skillData.equipSkill(i, null);
             }
         }
     }
+
 
     public CombatStyle getCurrentCombatStyle() {
         return this.currentCombatStyle;
@@ -158,7 +165,7 @@ public class SkillManager {
 
     // Call this method regularly, e.g. every tick, to reduce cooldown timers
     public void tickCooldowns() {
-        skillData.tickCooldowns();
+        cooldowns.replaceAll((id, time) -> Math.max(0, time - 1));
     }
 
     public void serializeNBT(CompoundTag tag) {
@@ -177,5 +184,13 @@ public class SkillManager {
         for (String key : cooldownsTag.getAllKeys()) {
             cooldowns.put(key, cooldownsTag.getInt(key));
         }
+    }
+
+    public void setCooldown(String skillId, int ticks) {
+        cooldowns.put(skillId, ticks);
+    }
+
+    public boolean isOnCooldown(String skillId) {
+        return cooldowns.getOrDefault(skillId, 0) > 0;
     }
 }

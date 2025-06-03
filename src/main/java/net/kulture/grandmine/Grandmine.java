@@ -145,6 +145,7 @@ public class Grandmine {
                 SkillRegistry.registerSkills();
                 CombatStyles.getAll();
                 ModParticles.registerParticles();
+                CombatStyles.init();
             });
 
             LOGGER.info("HELLO FROM CLIENT SETUP");

@@ -1,5 +1,6 @@
 package net.kulture.grandmine.combat.player;
 
+import net.kulture.grandmine.client.SkillSlotManager;
 import net.kulture.grandmine.combat.skills.Skill;
 import net.kulture.grandmine.combat.skills.SkillRegistry;
 import net.minecraft.nbt.CompoundTag;
@@ -104,6 +105,10 @@ public class PlayerSkillData {
     // --------------------------
     // SKILL USAGE
     // --------------------------
+    public boolean useCurrentSlotSkill() {
+        int slot = SkillSlotManager.getSelectedSlot();
+        return useSkill(slot);
+    }
 
     public boolean useSkill(int slot) {
         System.out.println("USE: Slot " + slot + " contains: " + getEquippedSkill(slot));
@@ -126,6 +131,10 @@ public class PlayerSkillData {
             System.out.println("USE FAILED: Skill on cooldown - " + skillId);
             return false;
         }
+
+
+
+
 
         // Execute the skill logic (make sure your Skill class implements this method)
         boolean result = skill.execute(player, manager);
@@ -221,5 +230,9 @@ public class PlayerSkillData {
         }
         setCooldown(skillId, cooldownTicks);
         return true;
+    }
+
+    public void setSkillSlotCount(int count) {
+        ensureEquippedListSize(count);
     }
 }

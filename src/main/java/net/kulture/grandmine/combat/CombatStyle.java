@@ -78,7 +78,11 @@ public class CombatStyle {
      */
     public List<Skill> getDefaultSkillObjects() {
         return defaultSkills.stream()
-                .map(loc -> SkillRegistry.getSkillById(loc.toString())) // Convert ResourceLocation to String
+                .map(loc -> {
+                    Skill skill = SkillRegistry.getSkillById(loc.toString());
+                    System.out.println("Looking up skill: " + id + " -> " + (skill != null));
+                    return skill;
+                }) // Convert ResourceLocation to String
                 .filter(skill -> skill != null)
                 .collect(Collectors.toList());
     }

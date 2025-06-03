@@ -13,7 +13,7 @@ public class SkillPunch extends Skill {
 
     public SkillPunch() {
         super(
-                "punch",                        // example skill id
+                "grandmine:punch",                        // example skill id
                 "Punch",                        // name
                 "Basic punch attack",           // description
                 SkillType.OFFENSIVE,               // skill type enum
@@ -31,6 +31,10 @@ public class SkillPunch extends Skill {
 
     @Override
     public boolean execute(Player player, SkillManager manager) {
+        if (player == null) {
+            System.err.println("SkillPunch.execute called with null player!");
+            return false;
+        }
         Level level = player.level();
 
 
@@ -53,7 +57,8 @@ public class SkillPunch extends Skill {
                 });
 
         // Set cooldown (example: 1.5 seconds)
-        manager.getData().setCooldown(this.getId(), 30);
+        manager.setCooldown(this.getId(), 30);
+
 
         player.sendSystemMessage(Component.literal("Punch skill used!"));
         manager.getData().setCooldown(getId(), 40); // 2 seconds

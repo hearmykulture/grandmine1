@@ -15,7 +15,7 @@ public class CombatStyles {
             "Brawler",
             "Close-range hand-to-hand combat with punches, combos, and slams.",
             List.of(
-                    new ResourceLocation("grandmine", "brawler_punch"),
+                    new ResourceLocation("grandmine", "punch"),
                     new ResourceLocation("grandmine", "geppo")
             ),
             4,
@@ -24,7 +24,11 @@ public class CombatStyles {
     ));
 
     // ... other styles and methods ...
-
+    public static void init() {
+        // Just referencing BRAWLER triggers class loading and registration
+        // Add any other styles you have here
+        CombatStyles.BRAWLER.toString();
+    }
     private static CombatStyle register(CombatStyle style) {
         STYLE_MAP.put(style.getId(), style);
         return style;
