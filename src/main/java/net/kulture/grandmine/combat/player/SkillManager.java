@@ -8,17 +8,17 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.List;
+import java.util.Map;
 
 public class SkillManager {
-
-    private Player player;  // The player this SkillManager belongs to
-    private PlayerSkillData skillData = new PlayerSkillData();
+    private Player player;
+    private PlayerSkillData skillData;
     private CombatStyle currentCombatStyle;
 
-    // Constructor with Player parameter
     public SkillManager(Player player) {
         this.player = player;
-        this.currentCombatStyle = null;
+        this.skillData = new PlayerSkillData(player);
+        this.skillData.setManager(this); // <- avoid recursion
     }
 
     // No-arg constructor for compatibility
@@ -42,7 +42,7 @@ public class SkillManager {
             this.skillData.loadFromNBT(skillDataTag);
         } else {
             // If no SkillData, initialize empty PlayerSkillData
-            this.skillData = new PlayerSkillData();
+            this.skillData = new PlayerSkillData(player);
         }
 
         if (tag.contains("CurrentCombatStyle")) {
@@ -60,12 +60,16 @@ public class SkillManager {
     public void setCurrentCombatStyle(CombatStyle style) {
         this.currentCombatStyle = style;
         if (style == null) return;
+        System.out.println("Setting combat style: " + style.getId());
 
         // Learn all default skills of the combat style if not already learned
         for (Skill skill : style.getDefaultSkillObjects()) {
             String skillId = skill.getId();
             if (!skillData.hasLearned(skillId)) {
+                System.out.println("Learning default skill: " + skillId);
                 skillData.learnSkill(skillId, 1);
+            } else {
+                System.out.println("Already learned skill: " + skillId);
             }
         }
 
@@ -81,6 +85,7 @@ public class SkillManager {
 
             for (int i = 0; i < slotsToFill; i++) {
                 skillData.equipSkill(i, defaults.get(i).getId());
+                System.out.println("Equipping skill in slot " + i + ": " + defaults.get(i));
             }
 
             for (int i = slotsToFill; i < equipped.size(); i++) {
@@ -123,18 +128,54 @@ public class SkillManager {
 
     public boolean useSkill(int slot) {
         String skillId = skillData.getEquippedSkill(slot);
-        if (skillId == null) return false;
+        System.out.println("Trying to use skill in slot " + slot + ": " + skillId);
+        if (skillId == null) {
+            System.out.println("Skill ID in slot " + slot + " is null. Maybe not equipped?");
+            return false;
+        }
 
         Skill skill = SkillRegistry.getSkillById(skillId);
-        if (skill == null || skillData.isOnCooldown(skillId)) return false;
+        if (skill == null) {
+            System.out.println("Skill ID '" + skillId + "' is not found in registry.");
+            return false;
+        }
 
-        // Here you would trigger the skill effect, animations, etc.
-        skillData.setCooldown(skillId, 100); // example cooldown of 100 ticks
-        return true;
+        if (skillData.isOnCooldown(skillId)) {
+            System.out.println("Skill '" + skillId + "' is on cooldown.");
+            // Optional: Log or handle cooldown message here
+            return false;
+        }
+
+        if (!skillData.hasLearned(skillId)) {
+            System.out.println("Player hasn't learned skill: " + skillId);
+            return false;
+        }
+
+
+        return skill.execute(player, this);  // Skill handles its own cooldown if needed
     }
+
 
     // Call this method regularly, e.g. every tick, to reduce cooldown timers
     public void tickCooldowns() {
         skillData.tickCooldowns();
+    }
+
+    public void serializeNBT(CompoundTag tag) {
+        CompoundTag cooldownsTag = new CompoundTag();
+        for (Map.Entry<String, Integer> entry : cooldowns.entrySet()) {
+            cooldownsTag.putInt(entry.getKey(), entry.getValue());
+        }
+        tag.put("Cooldowns", cooldownsTag);
+    }
+    private final Map<String, Integer> cooldowns = new java.util.HashMap<>();
+
+
+    public void deserializeNBT(CompoundTag tag) {
+        cooldowns.clear();
+        CompoundTag cooldownsTag = tag.getCompound("Cooldowns");
+        for (String key : cooldownsTag.getAllKeys()) {
+            cooldowns.put(key, cooldownsTag.getInt(key));
+        }
     }
 }

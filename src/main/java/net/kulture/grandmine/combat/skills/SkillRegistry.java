@@ -9,23 +9,14 @@ public class SkillRegistry {
 
     private static final Map<String, Skill> SKILL_MAP = new HashMap<>();
 
-    public static void registerSkills() {
-        register(new Skill(
-                "geppo",
-                "Geppo",
-                "Walk on air",
-                SkillType.MOVEMENT,
-                List.of(CombatStyles.BRAWLER),
-                20f,
-                0f,
-                5f,
-                1,
-                new ResourceLocation("grandmine:textures/icons/geppo.png"),
-                List.of(),
-                null
-        ));
+    // Declare your skills here first (before registering)
+    public static final Skill PUNCH = new SkillPunch();
+    // public static final Skill GEPPO = new SkillGeppo(); (when added)
 
-        // Add more skills here...
+    // Register skills in this method
+    public static void registerSkills() {
+        register(PUNCH);
+        // register(GEPPO); (future skills go here)
     }
 
     private static void register(Skill skill) {

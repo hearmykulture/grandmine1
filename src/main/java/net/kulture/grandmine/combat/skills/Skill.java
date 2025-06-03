@@ -1,14 +1,16 @@
 package net.kulture.grandmine.combat.skills;
 
 import net.kulture.grandmine.combat.CombatStyle;
+import net.kulture.grandmine.combat.player.SkillManager;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.List;
 
 /**
  * Represents a combat skill in the GrandMine mod.
  */
-public class Skill {
+public abstract class Skill {
 
     private final String id;
     private final String name;
@@ -109,4 +111,6 @@ public class Skill {
     public SkillEffect getEffect() {
         return effect;
     }
+
+    public abstract boolean execute(Player player, SkillManager manager);
 }
